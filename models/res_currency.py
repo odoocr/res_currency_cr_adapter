@@ -3,12 +3,9 @@
 
 from odoo import api, fields, models
 from odoo.addons import decimal_precision as dp
-from suds.client import Client
-from suds.xsd.doctor import Import, ImportDoctor
-from xmlrpc.client import ServerProxy
 import datetime
-import xml.etree.ElementTree
 import logging
+import requests
 
 _logger = logging.getLogger(__name__)
 
@@ -42,51 +39,34 @@ class ResCurrencyRate(models.Model):
         _logger.info("=========================================================")
         _logger.info("Executing exchange rate update")
 
-        company_name = self.env.user.company_id.name
+        try:
+            url = 'https://api.hacienda.go.cr/indicadores/tc'
+            response = requests.get(url, timeout=5, verify=False)
 
-        # Get current date to get exchange rate for today
-        currentDate = datetime.datetime.now().date()
-        today = currentDate.strftime('%d/%m/%Y') #formato requerido por el BCCR dd/mm/yy
+        except requests.exceptions.RequestException as e:
+            _logger.info('RequestException %s' % e)
+            return False
 
-        # Get XML Schema for BCCR webservice SOAP
-        imp = Import('http://www.w3.org/2001/XMLSchema', location='http://www.w3.org/2001/XMLSchema.xsd')
-        imp.filter.add('http://ws.sdde.bccr.fi.cr')
+        if response.status_code in (200,):
+            # Save the exchange rate in database
+            today = datetime.datetime.now().strftime('%Y-%m-%d')
+            data = response.json()
 
-        # Web Service Connection using the XML schema from BCCRR
-        client = Client('http://indicadoreseconomicos.bccr.fi.cr/indicadoreseconomicos/WebServices/wsIndicadoresEconomicos.asmx?WSDL', doctor=ImportDoctor(imp))
+            vals = {}
+            vals['original_rate'] = data['dolar']['venta']['valor']
+            # Odoo utiliza un valor inverso, a cuantos dólares equivale 1 colón, por eso se divide 1 / tipo de cambio.
+            vals['rate'] =  1 / vals['original_rate']
+            vals['original_rate_2'] = data['dolar']['compra']['valor']
+            vals['rate_2'] = 1 / vals['original_rate_2']
+            vals['currency_id'] = self.env.ref('base.USD').id
 
-        # Get Selling exchange Rate from BCCR
-        # Indicators IDs at https://www.bccr.fi.cr/seccion-indicadores-economicos/servicio-web
-        # The response is a string we need to convert it to XML to extract value
+            rate_id = self.env['res.currency.rate'].search([('name', '=', today)], limit=1)
 
-        response = client.service.ObtenerIndicadoresEconomicosXML(tcIndicador='318', tcFechaInicio=today, tcFechaFinal=today, tcNombre=company_name, tnSubNiveles='N')
-        xmlResponse = xml.etree.ElementTree.fromstring(response)
-        rateNodes = xmlResponse.findall("./INGC011_CAT_INDICADORECONOMIC/NUM_VALOR")
-        sellingRate = 0
-        if len(rateNodes) > 0:
-            sellingOriginalRate = float(rateNodes[0].text)
-            sellingRate = 1/sellingOriginalRate # Odoo utiliza un valor inverso. Es decir a cuantos dólares equivale 1 colón. Por eso se divide 1 colon entre el tipo de cambio. 
+            if rate_id:
+                rate_id.write(vals)
+            else:
+                vals['name'] = today
+                self.create(vals)
 
-        # Get Buying exchange Rate from BCCR
-        response = client.service.ObtenerIndicadoresEconomicosXML(tcIndicador='317', tcFechaInicio=today, tcFechaFinal=today, tcNombre=company_name, tnSubNiveles='N')
-        xmlResponse = xml.etree.ElementTree.fromstring(response)
-        rateNodes = xmlResponse.findall("./INGC011_CAT_INDICADORECONOMIC/NUM_VALOR")
-        buyingRate = 0
-        if len(rateNodes) > 0:
-            buyingOriginalRate = float(rateNodes[0].text)
-            buyingRate = 1/buyingOriginalRate # Odoo utiliza un valor inverso. Es decir a cuantos dólares equivale 1 colón. Por eso se divide 1 colon entre el tipo de cambio. 
-
-        # Save the exchange rate in database
-        today = currentDate.strftime('%Y-%m-%d')
-
-        ratesIds = self.env['res.currency.rate'].search([('name', '=', today)], limit=1)
-
-        if len(ratesIds) > 0:
-            vals = {'rate': sellingRate, 'original_rate':sellingOriginalRate, 'rate_2':buyingRate, 'original_rate_2':buyingOriginalRate, 'currency_id': self.env.ref('base.USD').id}
-            newRate = ratesIds.write(vals)
-
-        else:
-            vals = {'name': today, 'rate': sellingRate, 'original_rate':sellingOriginalRate, 'rate_2':buyingRate, 'original_rate_2':buyingOriginalRate, 'currency_id': self.env.ref('base.USD').id}
-            newRate = self.create(vals)
         _logger.info(vals)
         _logger.info("=========================================================")
