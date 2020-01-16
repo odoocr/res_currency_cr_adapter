@@ -3,11 +3,7 @@
 
 from odoo import api, fields, models
 from odoo.addons import decimal_precision as dp
-from suds.client import Client
-from suds.xsd.doctor import Import, ImportDoctor
-from xmlrpc.client import ServerProxy
 import datetime
-import xml.etree.ElementTree
 import logging
 import requests
 
