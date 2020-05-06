@@ -60,13 +60,17 @@ class ResCurrencyRate(models.Model):
             vals['rate_2'] = 1 / vals['original_rate_2']
             vals['currency_id'] = self.env.ref('base.USD').id
 
-            rate_id = self.env['res.currency.rate'].search([('name', '=', today)], limit=1)
+            # Revisamos cada compañia
+            for company_id in self.sudo().env['res.company'].search([]):
 
-            if rate_id:
-                rate_id.write(vals)
-            else:
-                vals['name'] = today
-                self.create(vals)
+                rate_id = self.sudo().env['res.currency.rate'].search([('company_id', '=', company_id.id),('name', '=', today)], limit=1)
+
+                if rate_id:
+                    rate_id.write(vals)
+                else:
+                    vals['name'] = today
+                    vals['company_id'] = company_id.id
+                    self.create(vals)
 
         _logger.info(vals)
         _logger.info("=========================================================")
