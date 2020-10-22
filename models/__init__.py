@@ -1,4 +1,5 @@
-# copyright  2018 Carlos Wong, Akurey SA
+# -*- coding: utf-8 -*-
+# https://github.com/odoocr
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 from . import res_currency
