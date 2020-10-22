@@ -35,6 +35,7 @@ class ResCurrencyRate(models.Model):
             vals = {}
             # Odoo utiliza un valor inverso, a cuantos dólares equivale 1 colón, por eso se divide 1 / tipo de cambio.
             vals['rate'] =  1 / data['dolar']['venta']['valor']
+            vals['currency_id'] = self.env.ref('base.USD').id
 
             rate_id = self.env['res.currency.rate'].search([('name', '=', today)], limit=1)
 
@@ -46,4 +47,4 @@ class ResCurrencyRate(models.Model):
 
         _logger.info(vals)
         _logger.info("=========================================================")
-
+    
