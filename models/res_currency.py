@@ -10,7 +10,7 @@ import requests
 _logger = logging.getLogger(__name__)
 
 
-class ResCurrencyRate(models.Model):
+class ResCurrency(models.Model):
     _inherit = 'res.currency'
 
     rate = fields.Float(digits=dp.get_precision('Currency Rate Precision'))
@@ -59,18 +59,29 @@ class ResCurrencyRate(models.Model):
             vals['original_rate_2'] = data['dolar']['compra']['valor']
             vals['rate_2'] = 1 / vals['original_rate_2']
             vals['currency_id'] = self.env.ref('base.USD').id
+            vals_usd = vals
+
+            vals = {}
+            vals['original_rate'] = data['euro']['colones']
+            vals['rate'] =  1 / vals['original_rate']
+            vals['original_rate_2'] = data['euro']['colones']
+            vals['rate_2'] = 1 / vals['original_rate_2']
+            vals['currency_id'] = self.env.ref('base.EUR').id
+            vals_eur = vals
+
+            rates = [vals_usd, vals_eur]
 
             # Revisamos cada compañia
             for company_id in self.sudo().env['res.company'].search([]):
-
-                rate_id = self.sudo().env['res.currency.rate'].search([('company_id', '=', company_id.id),('name', '=', today)], limit=1)
-
-                if rate_id:
-                    rate_id.write(vals)
-                else:
-                    vals['name'] = today
-                    vals['company_id'] = company_id.id
-                    self.create(vals)
+                # y ejecutamos con cada moneda
+                for vals in rates:
+                    rate_id = self.sudo().env['res.currency.rate'].search([('company_id', '=', company_id.id),('name', '=', today), ('currency_id', '=', vals['currency_id'])], limit=1)
+                    if rate_id:
+                        rate_id.write(vals)
+                    else:
+                        vals['name'] = today
+                        vals['company_id'] = company_id.id
+                        self.create(vals)               
 
         _logger.info(vals)
         _logger.info("=========================================================")
