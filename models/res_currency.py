@@ -62,9 +62,9 @@ class ResCurrencyRate(models.Model):
             vals_usd = vals
 
             vals = {}
-            vals['original_rate'] = data['euro']['colones']
+            vals['original_rate'] = float(data['euro']['valor']) * float(data['dolar']['venta']['valor'])
             vals['rate'] =  1 / vals['original_rate']
-            vals['original_rate_2'] = data['euro']['colones']
+            vals['original_rate_2'] = float(data['euro']['valor']) * float(data['dolar']['compra']['valor'])
             vals['rate_2'] = 1 / vals['original_rate_2']
             vals['currency_id'] = self.env.ref('base.EUR').id
             vals_eur = vals
