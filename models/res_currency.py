@@ -51,6 +51,7 @@ class ResCurrencyRate(models.Model):
             # Save the exchange rate in database
             today = datetime.datetime.now().strftime('%Y-%m-%d')
             data = response.json()
+            _logger.info(data)
 
             vals = {}
             vals['original_rate'] = data['dolar']['venta']['valor']
@@ -62,9 +63,9 @@ class ResCurrencyRate(models.Model):
             vals_usd = vals
 
             vals = {}
-            vals['original_rate'] = float(data['euro']['valor']) * float(data['dolar']['venta']['valor'])
+            vals['original_rate'] = data['euro']['colones']
             vals['rate'] =  1 / vals['original_rate']
-            vals['original_rate_2'] = float(data['euro']['valor']) * float(data['dolar']['compra']['valor'])
+            vals['original_rate_2'] = data['euro']['colones']
             vals['rate_2'] = 1 / vals['original_rate_2']
             vals['currency_id'] = self.env.ref('base.EUR').id
             vals_eur = vals
@@ -82,6 +83,5 @@ class ResCurrencyRate(models.Model):
                         vals['name'] = today
                         vals['company_id'] = company_id.id
                         self.create(vals)               
-
-        _logger.info(vals)
+                    _logger.info(vals)
         _logger.info("=========================================================")
