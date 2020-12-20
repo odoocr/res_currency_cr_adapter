@@ -52,6 +52,7 @@ class ResCurrencyRate(models.Model):
             today = datetime.datetime.now().strftime('%Y-%m-%d')
             data = response.json()
             _logger.info(data)
+            rates = []
 
             vals = {}
             vals['original_rate'] = data['dolar']['venta']['valor']
@@ -60,21 +61,26 @@ class ResCurrencyRate(models.Model):
             vals['original_rate_2'] = data['dolar']['compra']['valor']
             vals['rate_2'] = 1 / vals['original_rate_2']
             vals['currency_id'] = self.env.ref('base.USD').id
-            vals_usd = vals
+            rates.append(vals)
 
-            vals = {}
-            vals['original_rate'] = data['euro']['colones']
-            vals['rate'] =  1 / vals['original_rate']
-            vals['original_rate_2'] = data['euro']['colones']
-            vals['rate_2'] = 1 / vals['original_rate_2']
-            vals['currency_id'] = self.env.ref('base.EUR').id
-            vals_eur = vals
+            if 'euro' in data:
+                vals = {}
+                # sometimes hacienda's API returns the euro price in colones, other times it returns it in dollars
+                # they are not beign consistent, we'll try to keep up with such inconsistency
+                if 'colones' in data['euro']:
+                    vals['original_rate'] = data['euro']['colones']
+                elif 'valor' in data['euro']:
+                    vals['original_rate'] = float(data['euro']['valor']) * float(data['dolar']['venta']['valor'])
 
-            rates = [vals_usd, vals_eur]
+                vals['rate'] =  1 / vals['original_rate']
+                vals['original_rate_2'] = vals['original_rate']
+                vals['rate_2'] = 1 / vals['original_rate_2']
+                vals['currency_id'] = self.env.ref('base.EUR').id
+                rates.append(vals)
 
-            # Revisamos cada compañia
+            # Update rates for every company
             for company_id in self.sudo().env['res.company'].search([]):
-                # y ejecutamos con cada moneda
+                # and every currency
                 for vals in rates:
                     rate_id = self.sudo().env['res.currency.rate'].search([('company_id', '=', company_id.id),('name', '=', today), ('currency_id', '=', vals['currency_id'])], limit=1)
                     if rate_id:
