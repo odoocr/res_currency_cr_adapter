@@ -9,7 +9,7 @@
             <field name="doall" eval="False"/>
             <field name="model" eval="'res.currency.rate'"/>
             <field name="function" eval="'_cron_update'"/>
-            <field name="args" eval="'()'" />
+            <field name="args" eval="'('bccr',True)'" />
             <field name="nextcall" eval="(datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d 13:00:00')"></field>
         </record>
      </data>

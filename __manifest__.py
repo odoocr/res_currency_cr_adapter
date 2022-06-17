@@ -12,6 +12,8 @@
     'depends': ['base'],
     'data': [
         'data/currency_data.xml',
+
+        'views/res_config_settings_views.xml',
     ],
     'installable': True,
     'auto_install': False,
