@@ -51,6 +51,8 @@ class ResCurrencyRate(models.Model):
             # Save the exchange rate in database
             today = datetime.datetime.now().strftime('%Y-%m-%d')
             data = response.json()
+            _logger.info(data)
+            rates = []
 
             vals = {}
             vals['original_rate'] = data['dolar']['venta']['valor']
@@ -59,15 +61,32 @@ class ResCurrencyRate(models.Model):
             vals['original_rate_2'] = data['dolar']['compra']['valor']
             vals['rate_2'] = 1 / vals['original_rate_2']
             vals['currency_id'] = self.env.ref('base.USD').id
+            rates.append(vals)
 
-            rate_id = self.env['res.currency.rate'].search([('name', '=', today)], limit=1)
+            if 'euro' in data:
+                vals = {}
+                # sometimes hacienda's API returns the euro price in colones, other times it returns it in dollars
+                # they are not beign consistent, we'll try to keep up with such inconsistency
+                if 'colones' in data['euro']:
+                    vals['original_rate'] = data['euro']['colones']
+                elif 'valor' in data['euro']:
+                    vals['original_rate'] = float(data['euro']['valor']) * float(data['dolar']['venta']['valor'])
 
-            if rate_id:
-                rate_id.write(vals)
-            else:
-                vals['name'] = today
-                self.create(vals)
+                vals['rate'] =  1 / vals['original_rate']
+                vals['original_rate_2'] = vals['original_rate']
+                vals['rate_2'] = 1 / vals['original_rate_2']
+                vals['currency_id'] = self.env.ref('base.EUR').id
+                rates.append(vals)
 
-        _logger.info(vals)
-        _logger.info("=========================================================")
-
+            # Update rates for every company
+            for company_id in self.sudo().env['res.company'].search([]):
+                # and every currency
+                for r in rates:
+                    rate_id = self.sudo().env['res.currency.rate'].search([('company_id', '=', company_id.id),('name', '=', today), ('currency_id', '=', r['currency_id'])], limit=1)
+                    if rate_id:
+                        rate_id.write(r)
+                    else:
+                        rate = { 'name' : today, 'company_id' :company_id.id }
+                        rate.update((r))
+                        self.create(rate)               
+                    _logger.info(r)
