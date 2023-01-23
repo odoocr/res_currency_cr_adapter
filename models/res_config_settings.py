@@ -23,8 +23,8 @@ class ResConfigSettings(models.TransientModel):
         return {
             'bccr_indicador_compra': int(get_param('res_currency_cr_adapter.bccr_indicador_compra', '317')),
             'bccr_indicador_venta': int(get_param('res_currency_cr_adapter.bccr_indicador_venta', '318')),
-            'bccr_usuario': int(get_param('res_currency_cr_adapter.bccr_usuario', '')),
-            'bccr_token': int(get_param('res_currency_cr_adapter.bccr_token', '')),
+            'bccr_usuario': get_param('res_currency_cr_adapter.bccr_usuario', ''),
+            'bccr_token': get_param('res_currency_cr_adapter.bccr_token', ''),
         }
 
     @api.multi
