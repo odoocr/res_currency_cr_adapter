@@ -11,8 +11,18 @@ from lxml import etree
 _logger = logging.getLogger(__name__)
 
 
+class Currency(models.Model):
+    _inherit = "res.currency"
+
+    rate = fields.Float(compute='_compute_current_rate', string='Current Rate', digits=(12, 12),
+                        help='The rate of the currency to the currency of rate 1.')
+
+
 class ResCurrencyRate(models.Model):
     _inherit = 'res.currency.rate'
+
+    rate = fields.Float(digits=(12, 12), default=1.0, help='The rate of the currency to the currency of rate 1')
+
     
     @api.model
     def _cron_update(self, api_consulta='bccr', backfill=False, force_backfill=False):
