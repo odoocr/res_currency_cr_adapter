@@ -7,13 +7,13 @@
       <field name="model">res.currency.rate</field>
       <field name="inherit_id" ref="base.view_currency_rate_tree"/>
       <field name="arch" type="xml">
-        <tree>
+        <list>
                     <field name='original_rate'/>
                     <field name='rate_2'/>
                     <field name='original_rate_2'/>
                     <field name='write_date'/>
                     <field name="company_id" groups="base.group_multi_company"/>
-        </tree>
+        </list>
       </field>
     </record>
 </odoo>

@@ -3,7 +3,7 @@
 
 {
     'name': 'Costa Rica Currency Adapter',
-    'version': '11.0.1.0.0',
+    'version': '19.0.1.0.0',
     'category': 'Account',
     'author': "Akurey S.A.",
     'website': 'https://github.com/odoocr/res_currency_cr_adapter',
